@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mendy Chat</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <main class="chat-page">
+
+    <section id="usernameSetup" class="login-card">
+      <h1>Welcome to Mendy</h1>
+      <p>Choose your username so people can find you.</p>
+
+      <input id="usernameInput" type="text" placeholder="username" />
+      <input id="displayNameInput" type="text" placeholder="display name" />
+
+      <button id="saveUsernameBtn">Save Username</button>
+
+      <p id="usernameMessage"></p>
+    </section>
+
+    <section id="chatApp" class="chat-app hidden">
+      <aside class="sidebar">
+        <h2>Mendy</h2>
+
+            <div class="current-user">
+              <p id="currentUsername"></p>
+              <button id="logoutBtn" class="logout-btn">Log out</button>
+            </div>
+
+        <input id="searchInput" type="text" placeholder="Search username..." />
+        <button id="searchBtn">Search</button>
+
+        <div id="searchResults"></div>
+      </aside>
+
+      <section class="chat-area">
+        <div class="chat-header">
+          <h3 id="selectedUserName">Select a user</h3>
+        </div>
+
+        <div id="messagesBox" class="messages-box">
+          <p class="empty-chat">Search for a user and start chatting.</p>
+        </div>
+
+        <div class="message-input-area">
+          <input id="messageInput" type="text" placeholder="Write a message..." />
+          <button id="sendMessageBtn">Send</button>
+        </div>
+      </section>
+    </section>
+
+  </main>
+
+  <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/chat.js"></script>
+</body>
+</html>

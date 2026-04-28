@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mendy Login</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <main class="login-page">
+    <div class="login-card">
+      <h1>Mendy</h1>
+      <p>Login with your phone number</p>
+
+        <input id="phoneNumber" type="text" placeholder="+995555123456" />
+
+        <button id="sendCodeBtn">Send Code</button>
+
+        <input id="otpCode" type="text" placeholder="Enter SMS code" />
+
+        <button id="verifyCodeBtn">Verify Code</button>
+
+        <p id="message"></p>
+    </div>
+  </main>
+
+  <script src="./js/config.js"></script>
+  <script type="module" src="./js/auth.js"></script>
+</body>
+</html>
