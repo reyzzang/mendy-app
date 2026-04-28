@@ -1,4 +1,4 @@
-const admin = require("../config/firebase");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const verifyToken = async (req, res, next) => {
@@ -11,9 +11,9 @@ const verifyToken = async (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
       return res.status(401).json({ message: "User not found" });
@@ -23,7 +23,7 @@ const verifyToken = async (req, res, next) => {
 
     next();
   } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
 

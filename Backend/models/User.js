@@ -27,6 +27,16 @@ const userSchema = new mongoose.Schema(
       unique: true
     },
 
+    password: {
+      type: String,
+      default: ""
+    },
+
+    hasPassword: {
+      type: Boolean,
+      default: false
+    },
+
     lastSeen: {
       type: Date,
       default: Date.now

@@ -18,7 +18,7 @@ const messagesBox = document.getElementById("messagesBox");
 const messageInput = document.getElementById("messageInput");
 const sendMessageBtn = document.getElementById("sendMessageBtn");
 
-const token = localStorage.getItem("firebaseToken");
+const token = localStorage.getItem("token");
 let user = JSON.parse(localStorage.getItem("user"));
 
 let selectedUser = null;

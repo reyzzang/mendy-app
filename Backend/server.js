@@ -24,13 +24,11 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
 
-// Test route
 app.get("/", (req, res) => {
   res.send("Mendy backend is running");
 });

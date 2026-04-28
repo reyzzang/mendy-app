@@ -10,17 +10,40 @@
   <main class="login-page">
     <div class="login-card">
       <h1>Mendy</h1>
-      <p>Login with your phone number</p>
+      <p>Login with your phone number and password.</p>
 
-        <input id="phoneNumber" type="text" placeholder="+995555123456" />
+      <div id="passwordLoginBox">
+        <input id="loginPhoneNumber" type="text" placeholder="+995555111222" />
+        <input id="loginPassword" type="password" placeholder="Password" />
 
-        <button id="sendCodeBtn">Send Code</button>
+        <button id="passwordLoginBtn" type="button">Login</button>
+
+        <p class="small-text">
+          First time here?
+          <button id="showOtpBtn" type="button" class="link-btn">Verify phone</button>
+        </p>
+      </div>
+
+      <div id="otpLoginBox" class="hidden">
+        <input id="phoneNumber" type="text" placeholder="+995555111222" />
+
+        <button id="sendCodeBtn" type="button">Send Code</button>
 
         <input id="otpCode" type="text" placeholder="Enter SMS code" />
 
-        <button id="verifyCodeBtn">Verify Code</button>
+        <button id="verifyCodeBtn" type="button">Verify Code</button>
 
-        <p id="message"></p>
+        <input id="newPassword" type="password" placeholder="Create password" />
+
+        <button id="setPasswordBtn" type="button">Save Password</button>
+
+        <p class="small-text">
+          Already verified?
+          <button id="showPasswordLoginBtn" type="button" class="link-btn">Login with password</button>
+        </p>
+      </div>
+
+      <p id="message"></p>
     </div>
   </main>
 
