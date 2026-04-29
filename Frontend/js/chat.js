@@ -1,3 +1,5 @@
+console.log("chat.js loaded");
+
 const usernameSetup = document.getElementById("usernameSetup");
 const chatApp = document.getElementById("chatApp");
 
@@ -19,7 +21,13 @@ const messageInput = document.getElementById("messageInput");
 const sendMessageBtn = document.getElementById("sendMessageBtn");
 
 const token = localStorage.getItem("token");
-let user = JSON.parse(localStorage.getItem("user"));
+let user = null;
+
+try {
+  user = JSON.parse(localStorage.getItem("user"));
+} catch {
+  user = null;
+}
 
 let selectedUser = null;
 let currentConversation = null;
@@ -29,7 +37,20 @@ if (!token || !user) {
   window.location.href = "./login.html";
 }
 
+function requireElement(element, name) {
+  if (!element) {
+    console.error(`Missing HTML element: ${name}`);
+    return false;
+  }
+
+  return true;
+}
+
 function showChatApp() {
+  if (!requireElement(usernameSetup, "usernameSetup")) return;
+  if (!requireElement(chatApp, "chatApp")) return;
+  if (!requireElement(currentUsername, "currentUsername")) return;
+
   usernameSetup.classList.add("hidden");
   chatApp.classList.remove("hidden");
 
@@ -40,6 +61,9 @@ function showChatApp() {
 }
 
 function showUsernameSetup() {
+  if (!requireElement(usernameSetup, "usernameSetup")) return;
+  if (!requireElement(chatApp, "chatApp")) return;
+
   usernameSetup.classList.remove("hidden");
   chatApp.classList.add("hidden");
 }
@@ -47,7 +71,19 @@ function showUsernameSetup() {
 function connectSocket() {
   if (socket) return;
 
-  socket = io(SOCKET_URL);
+  if (typeof SOCKET_URL === "undefined") {
+    console.error("SOCKET_URL is undefined. Check config.js.");
+    return;
+  }
+
+  if (typeof io === "undefined") {
+    console.error("Socket.io script is not loaded. Check chat.html socket script URL.");
+    return;
+  }
+
+  socket = io(SOCKET_URL, {
+    transports: ["websocket", "polling"]
+  });
 
   socket.on("connect", () => {
     console.log("Connected to socket:", socket.id);
@@ -71,6 +107,8 @@ function connectSocket() {
 }
 
 function addMessageToBox(message) {
+  if (!requireElement(messagesBox, "messagesBox")) return;
+
   const emptyChat = document.querySelector(".empty-chat");
   if (emptyChat) {
     emptyChat.remove();
@@ -91,6 +129,7 @@ function addMessageToBox(message) {
 }
 
 function clearMessagesBox() {
+  if (!requireElement(messagesBox, "messagesBox")) return;
   messagesBox.innerHTML = "";
 }
 
@@ -130,6 +169,7 @@ async function loadMessages(conversationId) {
       addMessageToBox(message);
     });
   } catch (error) {
+    console.error("Load messages error:", error);
     messagesBox.innerHTML = `<p class="empty-chat">Error: ${error.message}</p>`;
   }
 }
@@ -164,12 +204,18 @@ async function openConversation(foundUser) {
     await loadMessages(currentConversation._id);
     await loadMyConversations();
   } catch (error) {
+    console.error("Open conversation error:", error);
     messagesBox.innerHTML = `<p class="empty-chat">Error: ${error.message}</p>`;
   }
 }
 
 async function loadMyConversations() {
   try {
+    if (typeof API_URL === "undefined") {
+      console.error("API_URL is undefined. Check config.js.");
+      return;
+    }
+
     const response = await fetch(API_URL + "/api/conversations", {
       headers: {
         Authorization: "Bearer " + token
@@ -223,7 +269,7 @@ async function loadMyConversations() {
   }
 }
 
-if (user.username) {
+if (user && user.username) {
   showChatApp();
 } else {
   showUsernameSetup();
@@ -239,139 +285,153 @@ if (logoutBtn) {
   });
 }
 
-saveUsernameBtn.addEventListener("click", async () => {
-  try {
-    const username = usernameInput.value.trim();
-    const displayName = displayNameInput.value.trim();
+if (saveUsernameBtn) {
+  saveUsernameBtn.addEventListener("click", async () => {
+    try {
+      const username = usernameInput.value.trim();
+      const displayName = displayNameInput.value.trim();
 
-    if (!username) {
-      usernameMessage.textContent = "Username is required.";
-      return;
-    }
-
-    usernameMessage.textContent = "Saving username...";
-
-    const response = await fetch(API_URL + "/api/users/set-username", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
-      body: JSON.stringify({
-        username,
-        displayName
-      })
-    });
-
-    const data = await safeJson(response);
-
-    if (!response.ok) {
-      usernameMessage.textContent = data.message || "Could not save username.";
-      return;
-    }
-
-    user = data.user;
-    localStorage.setItem("user", JSON.stringify(user));
-
-    usernameMessage.textContent = "Username saved.";
-
-    setTimeout(() => {
-      showChatApp();
-    }, 500);
-  } catch (error) {
-    usernameMessage.textContent = "Error: " + error.message;
-  }
-});
-
-searchBtn.addEventListener("click", async () => {
-  try {
-    console.log("Search button clicked");
-
-    const username = searchInput.value.trim();
-
-    if (!username) {
-      searchResults.innerHTML = "<p>Type a username first.</p>";
-      return;
-    }
-
-    if (!token) {
-      searchResults.innerHTML = "<p>You are not logged in. Please log in again.</p>";
-      return;
-    }
-
-    searchResults.innerHTML = "<p>Searching...</p>";
-
-    const response = await fetch(
-      API_URL + "/api/users/search?username=" + encodeURIComponent(username),
-      {
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token
-        }
+      if (!username) {
+        usernameMessage.textContent = "Username is required.";
+        return;
       }
-    );
 
-    const users = await safeJson(response);
+      usernameMessage.textContent = "Saving username...";
 
-    if (!response.ok) {
-      searchResults.innerHTML = `<p>${users.message || "Search failed."}</p>`;
-      return;
-    }
-
-    if (users.length === 0) {
-      searchResults.innerHTML = "<p>No users found.</p>";
-      return;
-    }
-
-    searchResults.innerHTML = "<h3>Search results</h3>";
-
-    users.forEach((foundUser) => {
-      const div = document.createElement("div");
-      div.className = "user-result";
-      div.innerHTML = `
-        <strong>@${foundUser.username}</strong>
-        <span>${foundUser.displayName || foundUser.username}</span>
-      `;
-
-      div.addEventListener("click", () => {
-        openConversation(foundUser);
+      const response = await fetch(API_URL + "/api/users/set-username", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({
+          username,
+          displayName
+        })
       });
 
-      searchResults.appendChild(div);
-    });
-  } catch (error) {
-    console.error("Search error:", error);
-    searchResults.innerHTML = `<p>Error: ${error.message}</p>`;
-  }
-});
+      const data = await safeJson(response);
 
-sendMessageBtn.addEventListener("click", () => {
-  const text = messageInput.value.trim();
+      if (!response.ok) {
+        usernameMessage.textContent = data.message || "Could not save username.";
+        return;
+      }
 
-  if (!text) return;
+      user = data.user;
+      localStorage.setItem("user", JSON.stringify(user));
 
-  if (!selectedUser || !currentConversation) {
-    messagesBox.innerHTML = `<p class="empty-chat">Select a user first.</p>`;
-    return;
-  }
+      usernameMessage.textContent = "Username saved.";
 
-  if (!socket) {
-    messagesBox.innerHTML = `<p class="empty-chat">Socket is not connected yet. Refresh and try again.</p>`;
-    return;
-  }
-
-  socket.emit("send_message", {
-    conversationId: currentConversation._id,
-    senderId: user._id,
-    receiverId: selectedUser._id,
-    text
+      setTimeout(() => {
+        showChatApp();
+      }, 500);
+    } catch (error) {
+      console.error("Save username error:", error);
+      usernameMessage.textContent = "Error: " + error.message;
+    }
   });
+}
 
-  messageInput.value = "";
-});
+if (searchBtn) {
+  searchBtn.addEventListener("click", async () => {
+    try {
+      console.log("Search button clicked");
 
-messageInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    sendMessageBtn.click();
-  }
-});
+      if (typeof API_URL === "undefined") {
+        searchResults.innerHTML = "<p>API_URL is missing. Check config.js.</p>";
+        return;
+      }
+
+      const username = searchInput.value.trim();
+
+      if (!username) {
+        searchResults.innerHTML = "<p>Type a username first.</p>";
+        return;
+      }
+
+      if (!token) {
+        searchResults.innerHTML = "<p>You are not logged in. Please log in again.</p>";
+        return;
+      }
+
+      searchResults.innerHTML = "<p>Searching...</p>";
+
+      const response = await fetch(
+        API_URL + "/api/users/search?username=" + encodeURIComponent(username),
+        {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + token
+          }
+        }
+      );
+
+      const users = await safeJson(response);
+
+      if (!response.ok) {
+        searchResults.innerHTML = `<p>${users.message || "Search failed."}</p>`;
+        return;
+      }
+
+      if (!Array.isArray(users) || users.length === 0) {
+        searchResults.innerHTML = "<p>No users found.</p>";
+        return;
+      }
+
+      searchResults.innerHTML = "<h3>Search results</h3>";
+
+      users.forEach((foundUser) => {
+        const div = document.createElement("div");
+        div.className = "user-result";
+        div.innerHTML = `
+          <strong>@${foundUser.username}</strong>
+          <span>${foundUser.displayName || foundUser.username}</span>
+        `;
+
+        div.addEventListener("click", () => {
+          openConversation(foundUser);
+        });
+
+        searchResults.appendChild(div);
+      });
+    } catch (error) {
+      console.error("Search error:", error);
+      searchResults.innerHTML = `<p>Error: ${error.message}</p>`;
+    }
+  });
+}
+
+if (sendMessageBtn) {
+  sendMessageBtn.addEventListener("click", () => {
+    const text = messageInput.value.trim();
+
+    if (!text) return;
+
+    if (!selectedUser || !currentConversation) {
+      messagesBox.innerHTML = `<p class="empty-chat">Select a user first.</p>`;
+      return;
+    }
+
+    if (!socket) {
+      messagesBox.innerHTML = `<p class="empty-chat">Socket is not connected yet. Refresh and try again.</p>`;
+      return;
+    }
+
+    socket.emit("send_message", {
+      conversationId: currentConversation._id,
+      senderId: user._id,
+      receiverId: selectedUser._id,
+      text
+    });
+
+    messageInput.value = "";
+  });
+}
+
+if (messageInput) {
+  messageInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      sendMessageBtn.click();
+    }
+  });
+}
