@@ -54,6 +54,10 @@ function connectSocket() {
     socket.emit("join_user_room", user._id);
   });
 
+  socket.on("connect_error", (error) => {
+    console.error("Socket connection error:", error.message);
+  });
+
   socket.on("receive_message", (message) => {
     if (
       currentConversation &&
@@ -90,6 +94,16 @@ function clearMessagesBox() {
   messagesBox.innerHTML = "";
 }
 
+async function safeJson(response) {
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Backend did not return JSON: " + text);
+  }
+}
+
 async function loadMessages(conversationId) {
   try {
     clearMessagesBox();
@@ -100,7 +114,7 @@ async function loadMessages(conversationId) {
       }
     });
 
-    const messages = await response.json();
+    const messages = await safeJson(response);
 
     if (!response.ok) {
       messagesBox.innerHTML = `<p class="empty-chat">${messages.message || "Could not load messages."}</p>`;
@@ -125,6 +139,8 @@ async function openConversation(foundUser) {
     selectedUser = foundUser;
     selectedUserName.textContent = "@" + foundUser.username;
 
+    messagesBox.innerHTML = `<p class="empty-chat">Opening conversation...</p>`;
+
     const response = await fetch(API_URL + "/api/conversations", {
       method: "POST",
       headers: {
@@ -136,7 +152,7 @@ async function openConversation(foundUser) {
       })
     });
 
-    const conversation = await response.json();
+    const conversation = await safeJson(response);
 
     if (!response.ok) {
       messagesBox.innerHTML = `<p class="empty-chat">${conversation.message || "Could not open conversation."}</p>`;
@@ -160,9 +176,10 @@ async function loadMyConversations() {
       }
     });
 
-    const conversations = await response.json();
+    const conversations = await safeJson(response);
 
     if (!response.ok) {
+      console.log("Could not load conversations:", conversations.message);
       return;
     }
 
@@ -214,6 +231,7 @@ if (user.username) {
 
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("firebaseToken");
     localStorage.removeItem("user");
 
@@ -231,6 +249,8 @@ saveUsernameBtn.addEventListener("click", async () => {
       return;
     }
 
+    usernameMessage.textContent = "Saving username...";
+
     const response = await fetch(API_URL + "/api/users/set-username", {
       method: "POST",
       headers: {
@@ -243,7 +263,7 @@ saveUsernameBtn.addEventListener("click", async () => {
       })
     });
 
-    const data = await response.json();
+    const data = await safeJson(response);
 
     if (!response.ok) {
       usernameMessage.textContent = data.message || "Could not save username.";
@@ -265,6 +285,8 @@ saveUsernameBtn.addEventListener("click", async () => {
 
 searchBtn.addEventListener("click", async () => {
   try {
+    console.log("Search button clicked");
+
     const username = searchInput.value.trim();
 
     if (!username) {
@@ -272,16 +294,24 @@ searchBtn.addEventListener("click", async () => {
       return;
     }
 
+    if (!token) {
+      searchResults.innerHTML = "<p>You are not logged in. Please log in again.</p>";
+      return;
+    }
+
+    searchResults.innerHTML = "<p>Searching...</p>";
+
     const response = await fetch(
-      API_URL + "/api/users/search?username=" + username,
+      API_URL + "/api/users/search?username=" + encodeURIComponent(username),
       {
+        method: "GET",
         headers: {
           Authorization: "Bearer " + token
         }
       }
     );
 
-    const users = await response.json();
+    const users = await safeJson(response);
 
     if (!response.ok) {
       searchResults.innerHTML = `<p>${users.message || "Search failed."}</p>`;
@@ -310,6 +340,7 @@ searchBtn.addEventListener("click", async () => {
       searchResults.appendChild(div);
     });
   } catch (error) {
+    console.error("Search error:", error);
     searchResults.innerHTML = `<p>Error: ${error.message}</p>`;
   }
 });
@@ -321,6 +352,11 @@ sendMessageBtn.addEventListener("click", () => {
 
   if (!selectedUser || !currentConversation) {
     messagesBox.innerHTML = `<p class="empty-chat">Select a user first.</p>`;
+    return;
+  }
+
+  if (!socket) {
+    messagesBox.innerHTML = `<p class="empty-chat">Socket is not connected yet. Refresh and try again.</p>`;
     return;
   }
 
