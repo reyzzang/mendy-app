@@ -1,2 +1,2 @@
-const API_URL = "http://localhost:5000";
-const SOCKET_URL = "http://localhost:5000";
+const API_URL = "https://mendy-bakcend.onrender.com";
+const SOCKET_URL = "https://mendy-bakcend.onrender.com";
